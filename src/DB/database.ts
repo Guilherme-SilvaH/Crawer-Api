@@ -2,7 +2,7 @@ import * as mongoDB from "mongodb";
 import * as dotenv from "dotenv";
 
 // Objeto que armazenará as coleções do banco de dados
-export const collections: { Cluster0?: mongoDB.Collection } = {}
+export const collections: { crawler?: mongoDB.Collection } = {}
 
 // Função assíncrona para conectar ao banco de dados MongoDB Atlas
 export async function connectDB() {
@@ -39,7 +39,7 @@ export async function connectDB() {
 
        
         // Exibindo mensagem de conexão bem-sucedida
-        collections.Cluster0 = citysCollection;
+        collections.crawler = citysCollection;
 
 
         // Exibindo mensagem de conexão bem-sucedida
