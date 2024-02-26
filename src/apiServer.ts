@@ -73,7 +73,7 @@ app.get('/', async(req, res) => {
     }
 
 
-})
+});
 
 
 //app para filtrar as inf
@@ -121,7 +121,101 @@ app.get('/date', async(req, res) => {
 });
 
 
+// app Post
+app.post('/weather', async(req, res) => {
+    const {city} = req.query
+    try{
+        const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
+        const weatherData = apiRes.data
+        
 
+        const locationName = weatherData.location.name;
+        const locationRegion = weatherData.location.region;
+        const currentTempC = weatherData.current.temp_c;
+        const forecastDate = weatherData.forecast.forecastday[0].date;
+        const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+        const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
+
+
+
+        //Objeto com os dados da resposta modificados
+        const resObj = {
+            cidade: city || weatherData.name,
+            Location: locationName,
+            Region: locationRegion,
+            Temp_c: currentTempC,
+            Date: forecastDate,
+            Min_Temp: forecastDay_MinTemp,
+            Max_Temp: forecastDay_MaxTemp,
+        }
+
+
+        // Conexão com o banco de dados MongoDB
+        await client.connect();
+        const db = client.db(process.env.DB_NAME);
+        const collection = db.collection(process.env.CITYS!);
+
+        //Inserção dos dados modificados no banco de dados
+        const result = await collection.insertOne(resObj);
+        console.log(`Insert city in the database, ID: ${result.insertedId}`);
+
+        
+    }catch(error){
+        // Tratamento de erros
+        console.error("Error fetching weather data");
+        res.status(500).send("Internal Server Error");
+    }finally{
+        await client.close();
+    }
+});
+
+
+async function scheduleData(city:string, startDate: Date, endDate: Date ) {
+    
+    try{
+        const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
+        const weatherData = apiRes.data
+        
+
+        const locationName = weatherData.location.name;
+        const locationRegion = weatherData.location.region;
+        const currentTempC = weatherData.current.temp_c;
+        const forecastDate = weatherData.forecast.forecastday[0].date;
+        const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+        const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
+
+
+
+        //Objeto com os dados da resposta modificados
+        const resObj = {
+            cidade: city || weatherData.name,
+            Location: locationName,
+            Region: locationRegion,
+            Temp_c: currentTempC,
+            Date: forecastDate,
+            Min_Temp: forecastDay_MinTemp,
+            Max_Temp: forecastDay_MaxTemp,
+        }
+
+
+        // Conexão com o banco de dados MongoDB
+        await client.connect();
+        const db = client.db(process.env.DB_NAME);
+        const collection = db.collection(process.env.CITYS!);
+
+        //Inserção dos dados modificados no banco de dados
+        const result = await collection.insertOne(resObj);
+        console.log(`Insert city in the database, ID: ${result.insertedId}`);
+
+        
+    }catch(error){
+        // Tratamento de erros
+        console.error("Error fetching weather data");
+        await client.close();
+    }
+
+
+};
 
 //portar que a api vai rodar 
 app.listen(3000, () =>{
