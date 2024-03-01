@@ -2,6 +2,8 @@ import express from 'express'
 import axios from 'axios';
 import * as dotenv from "dotenv";
 import { MongoClient } from 'mongodb';
+import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
+
 dotenv.config()
 
 
@@ -13,12 +15,8 @@ const apiKey = process.env.Weather_Api_Key
 const app = express()
 app.use(express.json())
 
-
-
 //defalt
-
 const defcity = "Paulinia"
-
 const client = new MongoClient (keyConexao!)
 
   //portar que a api vai rodar 
@@ -112,53 +110,59 @@ app.get('/weather/city', async (req, res) => {
 });
 
 
-// app Post
-app.post('/weather', async(req, res) => {
-    const {city, startDate, endDate} = req.query
 
-    
-    try{
-        const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
-        const weatherData = apiRes.data
-        
+export async function handler(event: APIGatewayProxyEvent, context: any) {
+    const queryStringParameters = event.queryStringParameters;
 
-        const locationName = weatherData.location.name;
-        const locationRegion = weatherData.location.region;
-        const currentTempC = weatherData.current.temp_c;
-        const forecastDate = weatherData.forecast.forecastday[0].date;
-        const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
-        const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
-
-         // Função para converter a data para o formato adequado no MongoDB
-         function filter(date:string) {
-            return new Date(date).toISOString();       
+    if (!queryStringParameters || !queryStringParameters.city) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ message: 'Parâmetro "city" ausente na solicitação.' }),
         };
+    }
 
+    const { city = 'cidadePadrao', startDate, endDate } = queryStringParameters;
 
-        //Objeto com os dados da resposta modificados
-        const resObj = {
-            cidade: city || weatherData.name,
-            Location: locationName,
-            Region: locationRegion,
-            Temp_c: currentTempC,
-            Date: forecastDate,
-            Min_Temp: forecastDay_MinTemp,
-            Max_Temp: forecastDay_MaxTemp,
-        }
+    try {
+    const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
+    const weatherData = apiRes.data;
 
-        //dateFilter é construído com uma condição para o campo timestamp no formato de uma consulta para MongoDB
-        const dateFilter = startDate && endDate ? {
-            timestamp: {
-                // é maior ou igual ($gte - greater than or equal) ao resultado de formatToISO(startDate.toString())
-                $gte: filter(startDate.toString()),
+    const locationName = weatherData.location.name;
+    const locationRegion = weatherData.location.region;
+    const currentTempC = weatherData.current.temp_c;
+    const forecastDate = weatherData.forecast.forecastday[0].date;
+    const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+    const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
 
-                //é menor ou igual ($lte - less than or equal) ao resultado de formatToISO(endDate.toString()).
-                $lte: filter(endDate.toString())
-            }
-        }
-        //Se startDate ou endDate não estiverem definidos (ou seja, algum deles é false), o objeto dateFilter é definido como um objeto vazio {}.
-        : {};
+    // Função para converter a data para o formato adequado no MongoDB
+    function filter(date: string) {
+      return new Date(date).toISOString();
+    }
 
+    // Objeto com os dados da resposta modificados
+    const resObj = {
+      cidade: city || weatherData.name,
+      Location: locationName,
+      Region: locationRegion,
+      Temp_c: currentTempC,
+      Date: forecastDate,
+      Min_Temp: forecastDay_MinTemp,
+      Max_Temp: forecastDay_MaxTemp,
+    };
+
+    // dateFilter é construído com uma condição para o campo timestamp no formato de uma consulta para MongoDB
+    const dateFilter = startDate && endDate ? {
+      timestamp: {
+        // é maior ou igual ($gte - greater than or equal) ao resultado de formatToISO(startDate.toString())
+        $gte: filter(startDate.toString()),
+
+        // é menor ou igual ($lte - less than or equal) ao resultado de formatToISO(endDate.toString()).
+        $lte: filter(endDate.toString())
+      }
+    } : {};
+
+    // Conectar ao MongoDB e inserir os dados
+    // (certifique-se de que a configuração do MongoDB e o cliente estejam corretos)
         await client.connect();
         const db = client.db(process.env.DB_NAME);
         const collection = db.collection(process.env.CITYS!);
@@ -166,20 +170,13 @@ app.post('/weather', async(req, res) => {
         const result = await collection.insertOne(resObj);
         console.log(`Insert city in the database, ID: ${result.insertedId}`);
 
-        // Envie uma resposta ao cliente
-        res.status(201).json({ message: 'Previsão salva com sucesso!' });
-
     } catch (error) {
-        console.error("Error fetching weather data", error);
-        res.status(500).send("Internal Server Error");
-    } finally {
-        await client.close();
+        console.error("Erro ao buscar dados meteorológicos", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Erro interno do servidor' }),
+        };
     }
-});
-
-
-
-
-
+}
 
 

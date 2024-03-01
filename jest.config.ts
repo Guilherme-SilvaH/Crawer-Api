@@ -1,6 +1,5 @@
+// jest.config.ts
 module.exports = {
-    preset: 'ts-jest',
-    testEnvironment: 'node',
-    testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(tsx?)$',
-    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-};
+    roots: ['<rootDir>/src', '<rootDir>'],
+    // outras configurações do Jest...
+  };

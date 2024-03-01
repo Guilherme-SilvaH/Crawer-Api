@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/aws-lambda": "^8.10.134",
     "axios": "^1.6.7",
     "dotenv": "^16.4.4",
     "express": "^4.18.2",
