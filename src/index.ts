@@ -2,7 +2,8 @@ import express from 'express'
 import axios from 'axios';
 import * as dotenv from "dotenv";
 import { MongoClient } from 'mongodb';
-import { APIGatewayProxyEvent, APIGatewayProxyHandler } from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyHandler, Context } from 'aws-lambda';
+import awsServerlessExpress from 'aws-serverless-express';
 
 dotenv.config()
 
@@ -111,7 +112,14 @@ app.get('/weather/city', async (req, res) => {
 
 
 
-export async function handler(event: APIGatewayProxyEvent, context: any) {
+
+// Exportando o app Express como uma função Lambda
+const server = awsServerlessExpress.createServer(app);
+
+export async function handler(event: APIGatewayProxyEvent, context: Context){
+      // Transforma o evento Lambda em um evento do Express
+    await awsServerlessExpress.proxy(server, event, context);
+
     const queryStringParameters = event.queryStringParameters;
 
     if (!queryStringParameters || !queryStringParameters.city) {
@@ -121,7 +129,7 @@ export async function handler(event: APIGatewayProxyEvent, context: any) {
         };
     }
 
-    const { city = 'cidadePadrao', startDate, endDate } = queryStringParameters;
+    const { city = 'paulinia', startDate, endDate } = queryStringParameters;
 
     try {
     const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -162,7 +170,6 @@ export async function handler(event: APIGatewayProxyEvent, context: any) {
     } : {};
 
     // Conectar ao MongoDB e inserir os dados
-    // (certifique-se de que a configuração do MongoDB e o cliente estejam corretos)
         await client.connect();
         const db = client.db(process.env.DB_NAME);
         const collection = db.collection(process.env.CITYS!);
@@ -176,7 +183,9 @@ export async function handler(event: APIGatewayProxyEvent, context: any) {
             statusCode: 500,
             body: JSON.stringify({ message: 'Erro interno do servidor' }),
         };
-    }
+    } finally {
+        await client.close();
+      }
 }
 
 
