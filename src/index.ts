@@ -2,7 +2,7 @@ import express from 'express'
 import axios from 'axios';
 import * as dotenv from "dotenv";
 import { MongoClient } from 'mongodb';
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, Context } from 'aws-lambda';
+import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import awsServerlessExpress from 'aws-serverless-express';
 
 dotenv.config()
@@ -111,25 +111,9 @@ app.get('/weather/city', async (req, res) => {
 });
 
 
-
-
-// Exportando o app Express como uma função Lambda
-const server = awsServerlessExpress.createServer(app);
-
-export async function handler(event: APIGatewayProxyEvent, context: Context){
-      // Transforma o evento Lambda em um evento do Express
-    await awsServerlessExpress.proxy(server, event, context);
-
-    const queryStringParameters = event.queryStringParameters;
-
-    if (!queryStringParameters || !queryStringParameters.city) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ message: 'Parâmetro "city" ausente na solicitação.' }),
-        };
-    }
-
-    const { city = 'paulinia', startDate, endDate } = queryStringParameters;
+app.post('/weather', async (req, res) => {
+ 
+    const { city, startDate, endDate } = req.query;
 
     try {
     const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -176,6 +160,8 @@ export async function handler(event: APIGatewayProxyEvent, context: Context){
 
         const result = await collection.insertOne(resObj);
         console.log(`Insert city in the database, ID: ${result.insertedId}`);
+        res.json(JSON.stringify('Insert city in the database'))
+    
 
     } catch (error) {
         console.error("Erro ao buscar dados meteorológicos", error);
@@ -186,6 +172,70 @@ export async function handler(event: APIGatewayProxyEvent, context: Context){
     } finally {
         await client.close();
       }
+})
+
+
+
+
+async function programWeather(city:string) {
+
+    try {
+    const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
+    const weatherData = apiRes.data;
+
+    const locationName = weatherData.location.name;
+    const locationRegion = weatherData.location.region;
+    const currentTempC = weatherData.current.temp_c;
+    const forecastDate = weatherData.forecast.forecastday[0].date;
+    const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+    const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
+
+    // Função para converter a data para o formato adequado no MongoDB
+    function filter(date: string) {
+      return new Date(date).toISOString();
+    }
+
+    // Objeto com os dados da resposta modificados
+    const resObj = {
+      cidade: city || weatherData.name,
+      Location: locationName,
+      Region: locationRegion,
+      Temp_c: currentTempC,
+      Date: forecastDate,
+      Min_Temp: forecastDay_MinTemp,
+      Max_Temp: forecastDay_MaxTemp,
+    };
+
+    // Conectar ao MongoDB e inserir os dados
+        await client.connect();
+        const db = client.db(process.env.DB_NAME);
+        const collection = db.collection(process.env.CITYS!);
+
+        const result = await collection.insertOne(resObj);
+        console.log(`Insert city in the database, ID: ${result.insertedId}`);
+
+    } catch (error) {
+        console.error("Erro ao buscar dados meteorológicos", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({ message: 'Erro interno do servidor' }),
+        };
+    } finally {
+        await client.close();
+      }
+    
 }
 
 
+
+// Exportando o app Express como uma função Lambda
+const server = awsServerlessExpress.createServer(app);
+export async function handler(event: APIGatewayProxyEvent, context: Context){
+    const city = "paulinia"
+    try{
+        await programWeather(city)
+    }catch(error){
+        console.error("ERRO AO PROGRAMAR PREVISAO", error);
+    }
+
+} 
