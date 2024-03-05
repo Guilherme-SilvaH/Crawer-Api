@@ -284,6 +284,7 @@ function programWeather(city) {
         });
     });
 }
+;
 // Exportando o app Express como uma função Lambda
 var server = aws_serverless_express_1.default.createServer(app);
 function handler(event, context) {
@@ -310,3 +311,4 @@ function handler(event, context) {
     });
 }
 exports.handler = handler;
+;

@@ -1,11 +1,10 @@
-import express from 'express'
+import express from 'express';
 import axios from 'axios';
 import * as dotenv from "dotenv";
 import { MongoClient } from 'mongodb';
 import { APIGatewayProxyEvent, Context } from 'aws-lambda';
 import awsServerlessExpress from 'aws-serverless-express';
-
-dotenv.config()
+dotenv.config();
 
 
 //key
@@ -13,12 +12,12 @@ const keyConexao = "mongodb+srv://guihenriquesilva10:t1BIyTysOqNb5UJC@crawler.xm
 const apiKey = process.env.Weather_Api_Key
 
 //config express
-const app = express()
-app.use(express.json())
+const app = express();
+app.use(express.json());
 
 //defalt
 const defcity = "Paulinia"
-const client = new MongoClient (keyConexao!)
+const client = new MongoClient (keyConexao!);
 
   //portar que a api vai rodar 
 app.listen(3000, () =>{
@@ -31,7 +30,7 @@ app.get('/weather', async(req, res) => {
     const {city} = req.query;
     try{
         const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
-        const weatherData = apiRes.data
+        const weatherData = apiRes.data;
         
 
         const locationName = weatherData.location.name;
@@ -172,7 +171,7 @@ app.post('/weather', async (req, res) => {
     } finally {
         await client.close();
       }
-})
+});
 
 
 
@@ -224,7 +223,7 @@ async function programWeather(city:string) {
         await client.close();
       }
     
-}
+};
 
 
 
@@ -238,4 +237,4 @@ export async function handler(event: APIGatewayProxyEvent, context: Context){
         console.error("ERRO AO PROGRAMAR PREVISAO", error);
     }
 
-} 
+};
