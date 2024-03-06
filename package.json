@@ -7,7 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
     "test": "node index.ts",
     "build": "tsc",
-    "start": "index.js"
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
