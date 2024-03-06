@@ -19,8 +19,10 @@ app.use(express.json());
 const defcity = "Paulinia"
 const client = new MongoClient (keyConexao!);
 
-app.use('0.0.0.0', (req,res) => {
-    res.status(200).json({message: 'serving Working'})
+
+const PORT = 8080
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is listening on port ${PORT}`);
 });
 
 // get para pegar inf da api Weather
