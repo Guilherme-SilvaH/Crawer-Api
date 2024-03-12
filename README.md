@@ -1,7 +1,7 @@
 
 # Projeto Crawler API
 
-Bem-vindo ao README animado do projeto Crawler API! Este projeto é uma API desenvolvida em TypeScript, Node, Axios e Express, projetada para coletar dados meteorológicos com base nos parâmetros da cidade fornecida. Além disso, oferece rotas que permitem filtrar dados meteorológicos com base em datas específicas. A API também inclui um endpoint para adicionar novas cidades ao banco de dados, caso a cidade desejada não seja encontrada.
+Bem-vindo ao README do projeto Crawler API! Este projeto é uma API desenvolvida em TypeScript, Node, Axios e Express, projetada para coletar dados meteorológicos com base nos parâmetros da cidade fornecida. Além disso, oferece rotas que permitem filtrar dados meteorológicos com base em datas específicas. A API também inclui um endpoint para adicionar novas cidades ao banco de dados, caso a cidade desejada não seja encontrada.
 
 ## Tecnologias Utilizadas
 
