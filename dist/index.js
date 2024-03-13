@@ -22,12 +22,10 @@ app.use(express.json());
 //defalt
 const defcity = "Paulinia";
 const client = new MongoClient(keyConexao);
-
-const PORT = 8080
+const PORT = 8080;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is listening on port ${PORT}`);
 });
-
 // get para pegar inf da api Weather
 app.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { city } = req.query;
@@ -201,12 +199,16 @@ function programWeather(city) {
 const server = awsServerlessExpress.createServer(app);
 export function handler(event, context) {
     return __awaiter(this, void 0, void 0, function* () {
-        const city = "paulinia";
         try {
-            yield programWeather(city);
+            const city = "Paulinia";
+            const url = "http://18.234.229.115:8080/weather?city=" + city;
+            const response = yield axios.get(url);
+            console.log("Response from API:", response.data);
+            return response.data;
         }
         catch (error) {
-            console.error("ERRO AO PROGRAMAR PREVISAO", error);
+            console.error("Error calling API:", error);
+            throw error;
         }
     });
 }
