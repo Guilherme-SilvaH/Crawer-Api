@@ -230,11 +230,16 @@ async function programWeather(city:string) {
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
 export async function handler(event: APIGatewayProxyEvent, context: Context){
-    const city = "paulinia"
-    try{
-        await programWeather(city)
-    }catch(error){
-        console.error("ERRO AO PROGRAMAR PREVISAO", error);
-    }
+    try {
+        const city = "Paulinia"; 
+        const url = "http://18.234.229.115:8080/weather?city=" + city;
 
+        const response = await axios.get(url);
+        console.log("Response from API:", response.data);
+
+        return response.data; 
+    } catch (error) {
+        console.error("Error calling API:", error);
+        throw error;
+    }
 };
