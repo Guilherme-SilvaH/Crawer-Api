@@ -4,7 +4,7 @@ const express = require('express');
 const { MongoClient } = require('mongodb');
 
 const app = express();
-const client = new MongoClient(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+const client = new MongoClient(process.env.DB_CONEXAO, { useNewUrlParser: true, useUnifiedTopology: true });
 
 async function programWeather(city) {
   try {
