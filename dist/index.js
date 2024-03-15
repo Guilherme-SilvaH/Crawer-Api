@@ -27,7 +27,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is listening on port ${PORT}`);
 });
 // get para pegar inf da api Weather
-app.get('/weather', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { city } = req.query;
     try {
         const apiRes = yield axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -97,7 +97,7 @@ app.get('/weather/city', (req, res) => __awaiter(void 0, void 0, void 0, functio
         yield client.close();
     }
 }));
-app.post('/insert', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/weather', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { city, startDate, endDate } = req.query;
     try {
         const apiRes = yield axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -153,8 +153,15 @@ app.post('/insert', (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 function programWeather(city) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const apiRes = yield axios.get(`18.234.229.115:8080/weather/city${city}`);
+            const apiRes = yield axios.get(`http://18.234.229.115:8080/weather/city${city}`);
             const weatherData = apiRes.data;
+            if (!weatherData) {
+                yield axios.post('http://18.234.229.115:8080/weather', { city });
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify({ message: 'Dados de previsão não encontrados, mas a API de post foi chamada.' }),
+                };
+            }
             const locationName = weatherData.location.name;
             const locationRegion = weatherData.location.region;
             const currentTempC = weatherData.current.temp_c;
@@ -181,6 +188,10 @@ function programWeather(city) {
             const collection = db.collection(process.env.CITYS);
             const result = yield collection.insertOne(resObj);
             console.log(`Insert city in the database, ID: ${result.insertedId}`);
+            return {
+                statusCode: 200,
+                body: JSON.stringify(resObj),
+            };
         }
         catch (error) {
             console.error("Erro ao buscar dados meteorológicos", error);
@@ -194,17 +205,21 @@ function programWeather(city) {
         }
     });
 }
-;
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
 export function handler(event, context) {
     return __awaiter(this, void 0, void 0, function* () {
         const city = "paulinia";
         try {
-            yield programWeather(city);
+            const response = yield programWeather(city);
+            return response;
         }
         catch (error) {
             console.error("ERRO AO PROGRAMAR PREVISAO", error);
+            return {
+                statusCode: 500,
+                body: JSON.stringify({ message: 'Erro interno do servidor' }),
+            };
         }
     });
 }

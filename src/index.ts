@@ -176,65 +176,80 @@ app.post('/weather', async (req, res) => {
 
 
 
-async function programWeather(city:string) {
-
+async function programWeather(city: string) {
     try {
-    const apiRes = await axios.get(`18.234.229.115:8080/weather/city${city}`);
-    const weatherData = apiRes.data;
-
-    const locationName = weatherData.location.name;
-    const locationRegion = weatherData.location.region;
-    const currentTempC = weatherData.current.temp_c;
-    const forecastDate = weatherData.forecast.forecastday[0].date;
-    const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
-    const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
-
-    // Função para converter a data para o formato adequado no MongoDB
-    function filter(date: string) {
-      return new Date(date).toISOString();
-    }
-
-    // Objeto com os dados da resposta modificados
-    const resObj = {
-      cidade: city || weatherData.name,
-      Location: locationName,
-      Region: locationRegion,
-      Temp_c: currentTempC,
-      Date: forecastDate,
-      Min_Temp: forecastDay_MinTemp,
-      Max_Temp: forecastDay_MaxTemp,
-    };
-
-    // Conectar ao MongoDB e inserir os dados
-        await client.connect();
-        const db = client.db(process.env.DB_NAME);
-        const collection = db.collection(process.env.CITYS!);
-
-        const result = await collection.insertOne(resObj);
-        console.log(`Insert city in the database, ID: ${result.insertedId}`);
-
-    } catch (error) {
-        console.error("Erro ao buscar dados meteorológicos", error);
+      const apiRes = await axios.get(`http://18.234.229.115:8080/weather/city${city}`);
+      const weatherData = apiRes.data;
+  
+      if (!weatherData) {
+        await axios.post('http://18.234.229.115:8080/weather', { city });
         return {
-            statusCode: 500,
-            body: JSON.stringify({ message: 'Erro interno do servidor' }),
+          statusCode: 200,
+          body: JSON.stringify({ message: 'Dados de previsão não encontrados, mas a API de post foi chamada.' }),
         };
-    } finally {
-        await client.close();
       }
-    
-};
-
+  
+      const locationName = weatherData.location.name;
+      const locationRegion = weatherData.location.region;
+      const currentTempC = weatherData.current.temp_c;
+      const forecastDate = weatherData.forecast.forecastday[0].date;
+      const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+      const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
+  
+      // Função para converter a data para o formato adequado no MongoDB
+      function filter(date: string) {
+        return new Date(date).toISOString();
+      }
+  
+      // Objeto com os dados da resposta modificados
+      const resObj = {
+        cidade: city || weatherData.name,
+        Location: locationName,
+        Region: locationRegion,
+        Temp_c: currentTempC,
+        Date: forecastDate,
+        Min_Temp: forecastDay_MinTemp,
+        Max_Temp: forecastDay_MaxTemp,
+      };
+  
+      // Conectar ao MongoDB e inserir os dados
+      await client.connect();
+      const db = client.db(process.env.DB_NAME);
+      const collection = db.collection(process.env.CITYS!);
+  
+      const result = await collection.insertOne(resObj);
+      console.log(`Insert city in the database, ID: ${result.insertedId}`);
+  
+      return {
+        statusCode: 200,
+        body: JSON.stringify(resObj),
+      };
+  
+    } catch (error) {
+      console.error("Erro ao buscar dados meteorológicos", error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ message: 'Erro interno do servidor' }),
+      };
+    } finally {
+      await client.close();
+    }
+  }
+  
 
 
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
-export async function handler(event: APIGatewayProxyEvent, context: Context){
-    const city = "paulinia"
-    try{
-        await programWeather(city)
-    }catch(error){
-        console.error("ERRO AO PROGRAMAR PREVISAO", error);
-    }
-
-} 
+export async function handler(event: APIGatewayProxyEvent, context: Context) {
+  const city = "paulinia";
+  try {
+    const response = await programWeather(city);
+    return response;
+  } catch (error) {
+    console.error("ERRO AO PROGRAMAR PREVISAO", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: 'Erro interno do servidor' }),
+    };
+  }
+}
