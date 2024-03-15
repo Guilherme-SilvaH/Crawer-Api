@@ -197,7 +197,7 @@ function programWeather(city) {
 ;
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
-export function handler(event, context) {
+export  function handler(event, context) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const city = "Paulinia";

@@ -26,7 +26,7 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // get para pegar inf da api Weather
-app.get('/', async(req, res) => {
+app.get('/weather', async(req, res) => {
     const {city} = req.query;
     try{
         const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
@@ -88,7 +88,7 @@ app.get('/weather/city', async (req, res) => {
         }
 
         const dateFilter = startDate && endDate ? {
-            cidade: city, // Certifique-se de que o campo da cidade no MongoDB é "cidade"
+            cidade: city, 
             Date: {
                 $gte: filter(startDate.toString()),
                 $lte: filter(endDate.toString())
@@ -110,7 +110,7 @@ app.get('/weather/city', async (req, res) => {
 });
 
 
-app.post('/weather', async (req, res) => {
+app.post('/insert', async (req, res) => {
  
     const { city, startDate, endDate } = req.query;
 
@@ -179,7 +179,7 @@ app.post('/weather', async (req, res) => {
 async function programWeather(city:string) {
 
     try {
-    const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
+    const apiRes = await axios.get(`18.234.229.115:8080/weather/city${city}`);
     const weatherData = apiRes.data;
 
     const locationName = weatherData.location.name;
@@ -230,16 +230,11 @@ async function programWeather(city:string) {
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
 export async function handler(event: APIGatewayProxyEvent, context: Context){
-    try {
-        const city = "Paulinia"; 
-        const url = "http://18.234.229.115:8080/weather?city=" + city;
-
-        const response = await axios.get(url);
-        console.log("Response from API:", response.data);
-
-        return response.data; 
-    } catch (error) {
-        console.error("Error calling API:", error);
-        throw error;
+    const city = "paulinia"
+    try{
+        await programWeather(city)
+    }catch(error){
+        console.error("ERRO AO PROGRAMAR PREVISAO", error);
     }
-};
+
+} 
