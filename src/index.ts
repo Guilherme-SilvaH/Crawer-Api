@@ -26,7 +26,7 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // get para pegar inf da api Weather
-app.get('/weather', async(req, res) => {
+app.get('/', async(req, res) => {
     const {city} = req.query;
     try{
         const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
@@ -110,7 +110,7 @@ app.get('/weather/city', async (req, res) => {
 });
 
 
-app.post('/insert', async (req, res) => {
+app.post('/weather', async (req, res) => {
  
     const { city, startDate, endDate } = req.query;
 
