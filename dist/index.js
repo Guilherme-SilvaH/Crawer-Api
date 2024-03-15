@@ -27,7 +27,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is listening on port ${PORT}`);
 });
 // get para pegar inf da api Weather
-app.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.get('/weather', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { city } = req.query;
     try {
         const apiRes = yield axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -77,7 +77,7 @@ app.get('/weather/city', (req, res) => __awaiter(void 0, void 0, void 0, functio
             return new Date(date).toISOString();
         }
         const dateFilter = startDate && endDate ? {
-            cidade: city, // Certifique-se de que o campo da cidade no MongoDB é "cidade"
+            cidade: city,
             Date: {
                 $gte: filter(startDate.toString()),
                 $lte: filter(endDate.toString())
@@ -97,7 +97,7 @@ app.get('/weather/city', (req, res) => __awaiter(void 0, void 0, void 0, functio
         yield client.close();
     }
 }));
-app.post('/weather', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+app.post('/insert', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { city, startDate, endDate } = req.query;
     try {
         const apiRes = yield axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -153,7 +153,7 @@ app.post('/weather', (req, res) => __awaiter(void 0, void 0, void 0, function* (
 function programWeather(city) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const apiRes = yield axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
+            const apiRes = yield axios.get(`18.234.229.115:8080/weather/city${city}`);
             const weatherData = apiRes.data;
             const locationName = weatherData.location.name;
             const locationRegion = weatherData.location.region;
@@ -197,19 +197,14 @@ function programWeather(city) {
 ;
 // Exportando o app Express como uma função Lambda
 const server = awsServerlessExpress.createServer(app);
-export  function handler(event, context) {
+export function handler(event, context) {
     return __awaiter(this, void 0, void 0, function* () {
+        const city = "paulinia";
         try {
-            const city = "Paulinia";
-            const url = "http://18.234.229.115:8080/weather?city=" + city;
-            const response = yield axios.get(url);
-            console.log("Response from API:", response.data);
-            return response.data;
+            yield programWeather(city);
         }
         catch (error) {
-            console.error("Error calling API:", error);
-            throw error;
+            console.error("ERRO AO PROGRAMAR PREVISAO", error);
         }
     });
 }
-;
