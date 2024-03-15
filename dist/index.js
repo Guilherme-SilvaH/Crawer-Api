@@ -7,11 +7,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import express from 'express';
-import axios from 'axios';
-import * as dotenv from "dotenv";
-import { MongoClient } from 'mongodb';
-import awsServerlessExpress from 'aws-serverless-express';
+const axios = require('axios');
+const awsServerlessExpress = require('aws-serverless-express');
+const express = require('express');
+const { MongoClient } = require('mongodb');
 dotenv.config();
 //key
 const keyConexao = "mongodb+srv://guihenriquesilva10:t1BIyTysOqNb5UJC@crawler.xmoo5ir.mongodb.net/?retryWrites=true&w=majority&appName=crawler";
