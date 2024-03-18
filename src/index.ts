@@ -2,8 +2,6 @@ import express from 'express';
 import axios from 'axios';
 import * as dotenv from "dotenv";
 import { MongoClient } from 'mongodb';
-import { APIGatewayProxyEvent, Context } from 'aws-lambda';
-import awsServerlessExpress from 'aws-serverless-express';
 dotenv.config();
 
 
@@ -26,93 +24,112 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 // get para pegar inf da api Weather
-app.get('/', async(req, res) => {
-    const {city} = req.query;
-    try{
-        const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`)
-        const weatherData = apiRes.data;
-        
+app.get('/weather', async (req, res) => {
+  const { city } = req.query;
+  if (!city) {
+      return res.status(400).json({ error: 'City parameter is required' });
+  }
 
-        const locationName = weatherData.location.name;
-        const locationRegion = weatherData.location.region;
-        const currentTempC = weatherData.current.temp_c;
-        const forecastDate = weatherData.forecast.forecastday[0].date;
-        const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
-        const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
+  try {
+      await client.connect();
+      const db = client.db(process.env.DB_NAME);
+      const collection = db.collection(process.env.CITYS!);
 
-        //Objeto com os dados da resposta modificados
-        const resObj = {
-            cidade: city || weatherData.name,
-            Location: locationName,
-            Region: locationRegion,
-            Temp_c: currentTempC,
-            Date: forecastDate,
-            Min_Temp: forecastDay_MinTemp,
-            Max_Temp: forecastDay_MaxTemp,
-        }
+      const result = await collection.findOne({ cidade: city });
+      if (result) {
+          // Se os dados da cidade existirem no banco de dados, retorne-os
+          return res.json(result);
+      } else {
+          // Se os dados da cidade não existirem no banco de dados, faça a chamada para a API do Weather
+          const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
+          const weatherData = apiRes.data;
 
+          const locationName = weatherData.location.name;
+          const locationRegion = weatherData.location.region;
+          const currentTempC = weatherData.current.temp_c;
+          const forecastDate = weatherData.forecast.forecastday[0].date;
+          const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
+          const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
 
-        // Conexão com o banco de dados MongoDB
-        await client.connect();
-        const db = client.db(process.env.DB_NAME);
-        const collection = db.collection(process.env.CITYS!);
+          const resObj = {
+              cidade: city,
+              Location: locationName,
+              Region: locationRegion,
+              Temp_c: currentTempC,
+              Date: forecastDate,
+              Min_Temp: forecastDay_MinTemp,
+              Max_Temp: forecastDay_MaxTemp,
+          }
 
-        //Inserção dos dados modificados no banco de dados
-        const resultDate = await collection.find(resObj).toArray();
-        console.log(`Result filtered from the date in the database: ${resultDate}`);
-        res.json(resultDate);
-
-        
-    }catch(error){
-        // Tratamento de erros
-        console.error("Error fetching weather data");
-        res.status(500).send("Internal Server Error");
-    }finally{
-        await client.close();
-    }
-
+          // Insira os dados da cidade no banco de dados
+          await collection.insertOne(resObj);
+          return res.json(resObj);
+      }
+  } catch (error) {
+      console.error("Error fetching weather data:", error);
+      res.status(500).send("Internal Server Error");
+  } finally {
+      await client.close();
+  }
 });
 
 
-//app para filtrar as inf
-app.get('/weather/city', async (req, res) => {
-    const { startDate, endDate, city } = req.query;
+app.get('/filter', async (req, res) => {
+  const { startDate, endDate, city } = req.query;
 
-    try {
-        await client.connect();
-        const db = client.db(process.env.DB_NAME);
-        const collection = db.collection(process.env.CITYS!);
+  try {
+      // Validar se todos os parâmetros obrigatórios estão presentes
+      if (!startDate || !endDate || !city) {
+          return res.status(400).json({ error: 'Parâmetros startDate, endDate e city são obrigatórios' });
+      }
 
-        function filter(date: string) {
-            return new Date(date).toISOString();
-        }
+      // Validar se as datas estão no formato correto
+      const isValidDate = (dateString: string) => {
+          const regex = /^\d{4}-\d{2}-\d{2}$/;
+          return regex.test(dateString);
+      };
 
-        const dateFilter = startDate && endDate ? {
-            cidade: city, 
-            Date: {
-                $gte: filter(startDate.toString()),
-                $lte: filter(endDate.toString())
-            }
-        } : {
-            cidade: city
-        };
-
-        const resultDate = await collection.find(dateFilter).toArray();
-        console.log(`Result filtered from the date in the database: ${resultDate}`);
-        res.json(resultDate);
-
-    } catch (error) {
-        console.error("Error fetching dates", error);
-        res.status(500).send("Internal Server Error");
-    } finally {
-        await client.close();
+      if (!isValidDate(startDate as string) || !isValidDate(endDate as string)) {
+        return res.status(400).json({ error: 'As datas devem estar no formato yyyy-mm-dd' });
     }
-});
 
+      // Conectar ao banco de dados
+      await client.connect();
+      const db = client.db(process.env.DB_NAME);
+      const collection = db.collection(process.env.CITYS!);
+
+      // Filtrar as datas no formato ISO e a cidade
+      const dateFilter = {
+          cidade: city, 
+          Date: {
+              $gte: new Date(startDate as string),
+              $lte: new Date(endDate as string)
+          }
+      };
+
+      // Consultar o banco de dados
+      const resultData = await collection.find(dateFilter).toArray();
+      
+      // Verificar se há dados encontrados
+      if (resultData.length === 0) {
+          return res.status(404).json({ message: 'Não foram encontrados dados para os filtros fornecidos' });
+      }
+
+      // Retornar os dados filtrados
+      res.json(resultData);
+
+  } catch (error) {
+      console.error("Erro ao filtrar os dados meteorológicos", error);
+      res.status(500).json({ error: 'Erro interno do servidor' });
+  } finally {
+      // Fechar a conexão com o banco de dados
+      await client.close();
+  }
+});
 
 app.post('/weather', async (req, res) => {
  
-    const { city, startDate, endDate } = req.query;
+    const { city } = req.query;
 
     try {
     const apiRes = await axios.get(`http://api.weatherapi.com/v1/forecast.json?key=25647f34103e4cdea63191638241602&q=${city}&days=1&aqi=no&alerts=no`);
@@ -125,10 +142,6 @@ app.post('/weather', async (req, res) => {
     const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
     const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
 
-    // Função para converter a data para o formato adequado no MongoDB
-    function filter(date: string) {
-      return new Date(date).toISOString();
-    }
 
     // Objeto com os dados da resposta modificados
     const resObj = {
@@ -140,17 +153,6 @@ app.post('/weather', async (req, res) => {
       Min_Temp: forecastDay_MinTemp,
       Max_Temp: forecastDay_MaxTemp,
     };
-
-    // dateFilter é construído com uma condição para o campo timestamp no formato de uma consulta para MongoDB
-    const dateFilter = startDate && endDate ? {
-      timestamp: {
-        // é maior ou igual ($gte - greater than or equal) ao resultado de formatToISO(startDate.toString())
-        $gte: filter(startDate.toString()),
-
-        // é menor ou igual ($lte - less than or equal) ao resultado de formatToISO(endDate.toString()).
-        $lte: filter(endDate.toString())
-      }
-    } : {};
 
     // Conectar ao MongoDB e inserir os dados
         await client.connect();
@@ -173,83 +175,3 @@ app.post('/weather', async (req, res) => {
       }
 });
 
-
-
-
-async function programWeather(city: string) {
-    try {
-      const apiRes = await axios.get(`http://18.234.229.115:8080/weather/city${city}`);
-      const weatherData = apiRes.data;
-  
-      if (!weatherData) {
-        await axios.post('http://18.234.229.115:8080/weather', { city });
-        return {
-          statusCode: 200,
-          body: JSON.stringify({ message: 'Dados de previsão não encontrados, mas a API de post foi chamada.' }),
-        };
-      }
-  
-      const locationName = weatherData.location.name;
-      const locationRegion = weatherData.location.region;
-      const currentTempC = weatherData.current.temp_c;
-      const forecastDate = weatherData.forecast.forecastday[0].date;
-      const forecastDay_MaxTemp = weatherData.forecast.forecastday[0].day.maxtemp_c;
-      const forecastDay_MinTemp = weatherData.forecast.forecastday[0].day.mintemp_c;
-  
-      // Função para converter a data para o formato adequado no MongoDB
-      function filter(date: string) {
-        return new Date(date).toISOString();
-      }
-  
-      // Objeto com os dados da resposta modificados
-      const resObj = {
-        cidade: city || weatherData.name,
-        Location: locationName,
-        Region: locationRegion,
-        Temp_c: currentTempC,
-        Date: forecastDate,
-        Min_Temp: forecastDay_MinTemp,
-        Max_Temp: forecastDay_MaxTemp,
-      };
-  
-      // Conectar ao MongoDB e inserir os dados
-      await client.connect();
-      const db = client.db(process.env.DB_NAME);
-      const collection = db.collection(process.env.CITYS!);
-  
-      const result = await collection.insertOne(resObj);
-      console.log(`Insert city in the database, ID: ${result.insertedId}`);
-  
-      return {
-        statusCode: 200,
-        body: JSON.stringify(resObj),
-      };
-  
-    } catch (error) {
-      console.error("Erro ao buscar dados meteorológicos", error);
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ message: 'Erro interno do servidor' }),
-      };
-    } finally {
-      await client.close();
-    }
-  }
-  
-
-
-// Exportando o app Express como uma função Lambda
-const server = awsServerlessExpress.createServer(app);
-export async function handler(event: APIGatewayProxyEvent, context: Context) {
-  const city = "paulinia";
-  try {
-    const response = await programWeather(city);
-    return response;
-  } catch (error) {
-    console.error("ERRO AO PROGRAMAR PREVISAO", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: 'Erro interno do servidor' }),
-    };
-  }
-}
