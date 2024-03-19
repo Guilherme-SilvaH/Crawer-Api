@@ -33,8 +33,8 @@ http://54.89.145.146:8080/weather?city="cidade que deseja inserir"
 ## Conexão com a API
 - [http://18.234.229.115:8080](http://54.89.145.146:8080)
 
-## Conexão com a API:
-CrowJob (cidade padrao Definida pormim) 
+## CrowJob 
+CrowJob (cidade padrao Definida pormim) utilizei o gatilho (cloundWatch Events) para fazer a chamada da api todos os dias, assim alimentando o meu banco de dados
 https://4fbsdgr6bkxj2xh2ahgslyzpry0lxukq.lambda-url.us-east-1.on.aws/
 
 ## Desafios
