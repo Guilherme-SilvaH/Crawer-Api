@@ -161,7 +161,7 @@ app.post('/weather', async (req, res) => {
 
         const result = await collection.insertOne(resObj);
         console.log(`Insert city in the database, ID: ${result.insertedId}`);
-        res.json(JSON.stringify('Insert city in the database'))
+        res.json(resObj);
     
 
     } catch (error) {
