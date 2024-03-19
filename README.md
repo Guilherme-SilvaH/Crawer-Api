@@ -3,6 +3,10 @@
 
 Bem-vindo ao README do projeto Crawler API! Este projeto é uma API desenvolvida em TypeScript, Node, Axios e Express, projetada para coletar dados meteorológicos com base nos parâmetros da cidade fornecida. Além disso, oferece rotas que permitem filtrar dados meteorológicos com base em datas específicas. A API também inclui um endpoint para adicionar novas cidades ao banco de dados, caso a cidade desejada não seja encontrada.
 
+## O que é: 
+
+Um crawler é um programa que explora a internet em busca de informações. Ele é usado para coletar dados para análise ou armazenamento em um banco de dados
+
 ## Tecnologias Utilizadas
 
 - TypeScript: Linguagem de programação que adiciona tipagem estática ao JavaScript, fornecendo uma ferramenta mais robusta para o desenvolvimento.
@@ -15,13 +19,23 @@ Bem-vindo ao README do projeto Crawler API! Este projeto é uma API desenvolvida
 
 A aplicação foi implantada na AWS, usando o serviço EC2 para hospedagem da API e Lambda Function para executar diariamente a coleta da previsão meteorológica da cidade.
 
-## Como Usar
+## Como Usar - End Points
 
-- GET /weather/:city?date=:date: Retorna os dados meteorológicos para a cidade fornecida na data especificada.
-- POST /add-city: Adiciona uma nova cidade ao banco de dados.
+- GET: /weather
+http://54.89.145.146:8080/weather?city="cidade que deseja Buscar"
+
+- Get com filtro para data min e data max: /filter
+http://54.89.145.146:8080/filter?startDate="dataMin"&endDate="dataMax"&city="cidade que deseja Buscar"
+
+- POST: /weather
+http://54.89.145.146:8080/weather?city="cidade que deseja inserir"
 
 ## Conexão com a API
-- http://18.234.229.115:8080
+- [http://18.234.229.115:8080](http://54.89.145.146:8080)
+
+## Conexão com a API:
+CrowJob (cidade padrao Definida pormim) 
+https://4fbsdgr6bkxj2xh2ahgslyzpry0lxukq.lambda-url.us-east-1.on.aws/
 
 ## Desafios
 
